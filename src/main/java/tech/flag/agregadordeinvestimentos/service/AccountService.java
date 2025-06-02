@@ -1,10 +1,8 @@
 package tech.flag.agregadordeinvestimentos.service;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import tech.flag.agregadordeinvestimentos.client.BrapiClient;
 import tech.flag.agregadordeinvestimentos.dto.AccountStockResponseDto;
 import tech.flag.agregadordeinvestimentos.dto.AssociateAccountStock;
 import tech.flag.agregadordeinvestimentos.entity.AccountStock;
@@ -18,18 +16,14 @@ import java.util.List;
 @Service
 public class AccountService {
 
-    @Value("#{environment.TOKEN}")
-    private String TOKEN;
     private AccountRepository accountRepository;
     private StockRepository stockRepository;
     private AccountStockRepository accountStockRepository;
-    private BrapiClient brapiClient;
 
-    public AccountService(AccountRepository accountRepository, StockRepository stockRepository, AccountStockRepository accountStockRepository, BrapiClient brapiClient) {
+    public AccountService(AccountRepository accountRepository, StockRepository stockRepository, AccountStockRepository accountStockRepository) {
         this.accountRepository = accountRepository;
         this.stockRepository = stockRepository;
         this.accountStockRepository = accountStockRepository;
-        this.brapiClient = brapiClient;
     }
 
     public void associateStock(Long accountId, AssociateAccountStock dto) {
@@ -54,16 +48,7 @@ public class AccountService {
         var account = accountRepository.findById(accountId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         return account.getAccountStocks()
                 .stream()
-                .map(as -> new AccountStockResponseDto(
-                        as.getStock().getStockId(),
-                        as.getQuantity(),
-                        getTotal(as.getQuantity(), as.getStock().getStockId())))
+                .map(as -> new AccountStockResponseDto(as.getStock().getStockId(), as.getQuantity(), 0.0))
                 .toList();
-    }
-
-    private double getTotal(Integer quantity, String stockId) {
-        var response = brapiClient.getStockPrice(TOKEN, stockId);
-        var price = response.results().getFirst().regularMarketPrice();
-        return quantity * price;
     }
 }
